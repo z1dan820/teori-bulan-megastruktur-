@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moon Megastructure Artifact (Realistic)</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #000000; }
+        #info {
+            position: absolute;
+            top: 10px;
+            width: 100%;
+            text-align: center;
+            color: #aaddff;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 12px;
+            z-index: 100;
+            pointer-events: none;
+            text-shadow: 0 0 5px #00aaff;
+            background: rgba(0,0,0,0.4);
+            padding: 5px 0;
+        }
+        #loading {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            color: white; font-family: sans-serif;
+            z-index: 101;
+        }
+    </style>
+</head>
+<body>
+    <div id="info">
+        MOON ARTIFACT // ANCIENT AI BENEATH THE SURFACE<br>
+        [Touch & Drag to Rotate] | [Pinch to Zoom]
+    </div>
+    <div id="loading">Loading Moon Textures and Stars...</div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        document.getElementById('loading').style.display = 'block'; // Pastikan loading terlihat
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 4.5;
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 0.2; // Sedikit lebih lambat
+
+        // --- Texture Loader ---
+        const textureLoader = new THREE.TextureLoader();
+
+        // 1. Latar Belakang Bintang (Starfield)
+        textureLoader.load('https://cdn.jsdelivr.net/gh/mrdoob/three.js@dev/examples/textures/galaxy.jpg', function(texture) {
+            scene.background = texture;
+            // Setelah background termuat, baru muat bulan
+            loadMoon();
+        }, undefined, function(err) {
+            console.error('An error happened loading starfield:', err);
+            loadMoon(); // Tetap coba muat bulan meski background gagal
+        });
+
+        function loadMoon() {
+            textureLoader.load('https://www.solarsystemscope.com/assets/img/textures/moon_map.jpg', function(moonTexture) {
+                textureLoader.load('https://www.solarsystemscope.com/assets/img/textures/moon_bump.jpg', function(bumpTexture) {
+                    document.getElementById('loading').style.display = 'none'; // Sembunyikan loading setelah semua termuat
+
+                    // 2. Bulan Realistis
+                    const moonGeometry = new THREE.SphereGeometry(1.5, 64, 64); // Lebih banyak segmen untuk kehalusan
+                    const moonMaterial = new THREE.MeshStandardMaterial({
+                        map: moonTexture,
+                        bumpMap: bumpTexture,
+                        bumpScale: 0.02, // Intensitas kawah
+                        roughness: 0.9,
+                        metalness: 0.1
+                    });
+                    const moon = new THREE.Mesh(moonGeometry, moonMaterial);
+                    scene.add(moon);
+
+                    // 3. Efek AI Tersembunyi (Cahaya Global dari dalam)
+                    const aiGlowGeometry = new THREE.SphereGeometry(1.52, 64, 64); // Sedikit lebih besar dari Bulan
+                    const aiGlowMaterial = new THREE.MeshBasicMaterial({
+                        color: 0x00ffff, // Warna Cyan untuk AI
+                        transparent: true,
+                        opacity: 0.08, // Sangat transparan, seperti kabut cahaya
+                        blending: THREE.AdditiveBlending // Efek glowing
+                    });
+                    const aiGlow = new THREE.Mesh(aiGlowGeometry, aiGlowMaterial);
+                    scene.add(aiGlow);
+
+                    // Cincin Data / Struktur AI di Orbit (opsional, bisa diaktifkan/dinonaktifkan)
+                    const ringGeometry = new THREE.TorusGeometry(2.5, 0.01, 2, 100);
+                    const ringMaterial = new THREE.MeshBasicMaterial({
+                        color: 0x00aaff, // Biru terang
+                        transparent: true,
+                        opacity: 0.5,
+                        blending: THREE.AdditiveBlending
+                    });
+                    const aiRing = new THREE.Mesh(ringGeometry, ringMaterial);
+                    aiRing.rotation.x = Math.PI / 2; // Buat horizontal
+                    scene.add(aiRing);
+
+                    // Partikel AI kecil yang memancar dari Bulan (seperti transmisi data)
+                    const particleCount = 200;
+                    const particlesGeometry = new THREE.BufferGeometry();
+                    const positions = new Float32Array(particleCount * 3);
+                    const velocities = new Float32Array(particleCount * 3); // Kecepatan partikel
+
+                    for (let i = 0; i < particleCount * 3; i += 3) {
+                        // Posisi awal di permukaan Bulan
+                        const angle = Math.random() * Math.PI * 2;
+                        const radius = 1.5; // Radius Bulan
+                        positions[i] = radius * Math.cos(angle);
+                        positions[i+1] = radius * Math.sin(angle);
+                        positions[i+2] = (Math.random() - 0.5) * 0.1; // Sedikit di atas permukaan
+
+                        // Kecepatan memancar keluar
+                        velocities[i] = (Math.random() - 0.5) * 0.005;
+                        velocities[i+1] = (Math.random() - 0.5) * 0.005;
+                        velocities[i+2] = Math.random() * 0.005 + 0.001; // Lebih banyak ke atas
+                    }
+                    particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                    particlesGeometry.setAttribute('velocity', new THREE.BufferAttribute(velocities, 3));
+
+                    const particlesMaterial = new THREE.PointsMaterial({
+                        color: 0xffdd00, // Kuning keemasan
+                        size: 0.05,
+                        transparent: true,
+                        opacity: 0.7,
+                        blending: THREE.AdditiveBlending
+                    });
+                    const dataParticles = new THREE.Points(particlesGeometry, particlesMaterial);
+                    scene.add(dataParticles);
+
+                    // 4. LIGHTING (Matahari dan Cahaya AI)
+                    const sunLight = new THREE.DirectionalLight(0xffffee, 1.5); // Cahaya Matahari
+                    sunLight.position.set(5, 5, 5).normalize();
+                    scene.add(sunLight);
+
+                    const ambientLight = new THREE.AmbientLight(0x333333);
+                    scene.add(ambientLight);
+
+                    // Cahaya AI tambahan dari dalam bulan (lebih biru)
+                    const aiInnerLight = new THREE.PointLight(0x00aaff, 1, 10);
+                    aiInnerLight.position.set(0, 0, 0); // Di tengah bulan
+                    scene.add(aiInnerLight);
+
+                    // 5. ANIMATION
+                    function animate() {
+                        requestAnimationFrame(animate);
+
+                        moon.rotation.y += 0.0008; // Rotasi Bulan
+                        aiGlow.rotation.y -= 0.0005; // Glow berputar sedikit berlawanan
+                        aiRing.rotation.z += 0.001; // Cincin berputar
+                        
+                        // Animasi partikel memancar
+                        const positions = dataParticles.geometry.attributes.position.array;
+                        const velocities = dataParticles.geometry.attributes.velocity.array;
+
+                        for (let i = 0; i < particleCount * 3; i += 3) {
+                            positions[i] += velocities[i];
+                            positions[i+1] += velocities[i+1];
+                            positions[i+2] += velocities[i+2];
+
+                            // Reset partikel jika terlalu jauh
+                            if (positions[i]*positions[i] + positions[i+1]*positions[i+1] + positions[i+2]*positions[i+2] > 2.5*2.5) { // Jika keluar dari radius tertentu
+                                const angle = Math.random() * Math.PI * 2;
+                                const radius = 1.5; // Radius Bulan
+                                positions[i] = radius * Math.cos(angle);
+                                positions[i+1] = radius * Math.sin(angle);
+                                positions[i+2] = (Math.random() - 0.5) * 0.1;
+                                velocities[i] = (Math.random() - 0.5) * 0.005;
+                                velocities[i+1] = (Math.random() - 0.5) * 0.005;
+                                velocities[i+2] = Math.random() * 0.005 + 0.001;
+                            }
+                        }
+                        dataParticles.geometry.attributes.position.needsUpdate = true; // Penting untuk update posisi
+
+                        controls.update();
+                        renderer.render(scene, camera);
+                    }
+
+                    animate();
+                });
+            }, undefined, function(err) {
+                console.error('An error happened loading moon textures:', err);
+                document.getElementById('loading').textContent = "Failed to load Moon textures. Check internet connection.";
+            });
+        }
+
+        // Resize Handler
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
